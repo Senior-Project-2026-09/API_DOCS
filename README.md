@@ -3,7 +3,7 @@
 실시간 코딩 배틀 플랫폼(종합설계)의 REST API · Socket.IO 이벤트 명세입니다.
 
 - 명세 페이지: `index.html` (GitHub Pages로 공개)
-- 현재 버전: v0.1 초안 (2026-10-27) — 팀 검토 필요
+- 현재 버전: v0.3 초안 (2026-11-01) — 팀 검토 필요
 
 ## GitHub Pages 켜기
 Settings → Pages → Source: `Deploy from a branch`, Branch: `main` / `/ (root)` → Save

@@ -79,7 +79,7 @@
 <div class="layout">
 <nav id="nav">
   <div class="brand">코딩 배틀 API</div>
-  <div class="ver">v0.2 초안 · 2026-11-01</div>
+  <div class="ver">v0.3 초안 · 2026-11-01</div>
   <input id="q" type="search" placeholder="경로 · 이벤트 검색" aria-label="검색">
   <h4>개요</h4>
   <a href="#overview">한눈에 보기</a>
@@ -104,13 +104,14 @@
   <h4>부록</h4>
   <a href="#rules">대결 규칙 수치</a>
   <a href="#pending">미정 사항</a>
+  <a href="#excluded">1차 제외 기능</a>
   <a href="#changelog">변경 이력</a>
 </nav>
 
 <main>
 <button class="theme" id="theme" type="button">다크/라이트</button>
 <h1>실시간 코딩 배틀 플랫폼 — API 명세</h1>
-<p class="lead">REST API(계정 · 문제 · 방 · 경기 기록 · 문제 등록)와 Socket.IO 실시간 이벤트(대결 진행 · 채점 결과 · 공격)를 정의합니다. <span class="pill">v0.2 초안 — 팀 검토 필요</span></p>
+<p class="lead">REST API(계정 · 문제 · 방 · 경기 기록 · 문제 등록)와 Socket.IO 실시간 이벤트(대결 진행 · 채점 결과 · 공격)를 정의합니다. <span class="pill">v0.3 초안 — 팀 검토 필요</span></p>
 
 <!-- ============================================================ 개요 -->
 <h2 id="overview">한눈에 보기</h2>
@@ -128,7 +129,7 @@
 <ul>
   <li>경로는 소문자 복수형 명사, 단어 구분은 하이픈(<code>/learning-report</code>). JSON 필드는 camelCase.</li>
   <li>목록 조회는 <code>page</code>(0부터), <code>size</code>(기본 20, 최대 100) 쿼리를 쓰고 <a href="#response">페이지 응답</a>으로 돌려준다.</li>
-  <li>ID는 문자열이다: 사용자 <code>usr_…</code>, 문제 <code>prb_…</code>, 방 코드 6자리 대문자+숫자(<code>K7Q29X</code>), 경기 <code>mat_…</code>, 제출 <code>sub_…</code>, 공격 <code>atk_…</code>.</li>
+  <li>ID는 문자열이다: 사용자 <code>usr_…</code>, 문제 <code>prb_…</code>, 방 코드 숫자 6자리(<code>482917</code>), 경기 <code>mat_…</code>, 제출 <code>sub_…</code>, 공격 <code>atk_…</code>.</li>
   <li>규칙 수치(15분, 45초, 최대 3점 등)는 서버 설정값이다. 클라이언트는 하드코딩하지 말고 <code>match:start</code>의 <code>rules</code>를 쓴다.</li>
   <li>로그인은 이메일 회원가입과 GitHub 로그인을 지원한다.</li>
   <li>제출 코드 최대 64KB. 같은 사람의 제출 간격은 최소 3초(<code>RATE_LIMITED</code>).</li>
@@ -203,7 +204,7 @@
   <tr><td><code>SubmissionKind</code></td><td>MATCH, PRACTICE</td><td>대결 제출은 채점 우선순위 1, 연습은 5</td></tr>
   <tr><td><code>Role</code></td><td>USER, ADMIN</td><td></td></tr>
   <tr><td><code>AttackStatus</code></td><td>PENDING, CANCELLED, APPLIED</td><td>대기 · 전부 상쇄 · 적용 완료</td></tr>
-  <tr><td><code>MatchResult</code></td><td>WIN, LOSE</td><td>경기 기록의 <code>result</code>. 무승부는 <a href="#pending">미정</a></td></tr>
+  <tr><td><code>MatchResult</code></td><td>WIN, LOSE, DRAW</td><td>경기 기록의 <code>result</code>. DRAW = 둘 다 0문제로 끝난 경기</td></tr>
   <tr><td><code>ProblemProgress</code></td><td>SOLVED, ATTEMPTED, UNTRIED</td><td>문제 목록의 내 상태: 맞힘 · 시도 · 미시도</td></tr>
 </table>
 
@@ -346,11 +347,11 @@
   "problemIds": null,                      // null이면 서버가 하2 · 중2 · 상1을 뽑음 (같은 태그 겹치지 않게, 폭탄 적합 3개 이상)
   "allowSpectate": true }                  // 기본 true
 // 201 Response data
-{ "roomCode": "K7Q29X", "status": "WAITING", "hostId": "usr_8f2c", "allowSpectate": true, "expiresAt": "2026-10-27T02:15:00+09:00" }</code></pre>
+{ "roomCode": "482917", "status": "WAITING", "hostId": "usr_8f2c", "allowSpectate": true, "expiresAt": "2026-10-27T02:15:00+09:00" }</code></pre>
 <p>방은 30분 안에 경기가 시작되지 않으면 사라진다. 방 입장은 소켓 <code>room:join</code>으로 한다.</p>
 </div></details>
 <details class="ep"><summary><span class="m GET">GET</span><span class="path">/api/v1/rooms/{roomCode}</span><span class="tag p1">1차</span><span class="tag auth">로그인</span><span class="desc">방 정보 (입장 전 확인)</span></summary><div class="body">
-<pre><code>{ "roomCode": "K7Q29X", "status": "WAITING", "rulePreset": "STANDARD", "hostId": "usr_8f2c", "allowSpectate": true,
+<pre><code>{ "roomCode": "482917", "status": "WAITING", "rulePreset": "STANDARD", "hostId": "usr_8f2c", "allowSpectate": true,
   "players": [ { "userId": "usr_8f2c", "nickname": "asterisk", "ready": false } ],
   "capacity": 2, "spectatorCount": 0 }</code></pre>
 <p>에러: <code>ROOM_NOT_FOUND</code></p>
@@ -360,7 +361,7 @@
 <details class="ep"><summary><span class="m GET">GET</span><span class="path">/api/v1/matches/live</span><span class="tag p2">최종</span><span class="desc">진행 중인 경기 목록 (관전)</span></summary><div class="body">
 <p>쿼리: <code>page</code>, <code>size</code>. <code>allowSpectate</code>가 true인 경기만.</p>
 <pre><code>// data.content[]
-{ "roomCode": "K7Q29X", "matchId": "mat_1042", "remainingSec": 564, "spectatorCount": 24,
+{ "roomCode": "482917", "matchId": "mat_1042", "remainingSec": 564, "spectatorCount": 24,
   "players": [ { "nickname": "asterisk", "solved": 2 }, { "nickname": "kimcoding", "solved": 1 } ] }</code></pre>
 <p>점수는 관전 화면과 같은 30초 지연 시점을 기준으로 한다.</p>
 </div></details>
@@ -369,7 +370,7 @@
 </div></details>
 <details class="ep"><summary><span class="m GET">GET</span><span class="path">/api/v1/matches/{matchId}</span><span class="tag p1">1차</span><span class="tag auth">로그인</span><span class="desc">경기 결과 요약</span></summary><div class="body">
 <pre><code>{
-  "matchId": "mat_1042", "roomCode": "K7Q29X",
+  "matchId": "mat_1042", "roomCode": "482917",
   "startedAt": "2026-10-27T01:15:00+09:00", "endedAt": "2026-10-27T01:30:00+09:00",
   "reason": "TIME_UP", "winnerId": "usr_8f2c",
   "players": [
@@ -382,7 +383,7 @@
   ],
   "problems": [ { "no": 1, "problemId": "prb_prefix_sum", "difficulty": "LOW" } ]
 }</code></pre>
-<p><code>lastSolvedAt</code>, <code>solvedAt</code>은 경기 시작 후 경과 ms (동점이면 작은 쪽 승). 안 푼 문제의 <code>solvedAt</code>은 null이다. 공격 타임라인은 <code>/events</code>로 그린다.</p>
+<p><code>lastSolvedAt</code>, <code>solvedAt</code>은 경기 시작 후 경과 ms (동점이면 작은 쪽 승). 둘 다 0문제면 무승부이고 <code>winnerId</code>는 null이다. 안 푼 문제의 <code>solvedAt</code>은 null이다. 공격 타임라인은 <code>/events</code>로 그린다.</p>
 </div></details>
 <details class="ep"><summary><span class="m GET">GET</span><span class="path">/api/v1/matches/{matchId}/learning-report</span><span class="tag p2">최종</span><span class="tag auth">로그인</span><span class="desc">학습 리포트</span></summary><div class="body">
 <p>요청한 사람 기준. 공격 전후 내 풀이의 실행 시간을 비교해 시간복잡도 개선을 보여 준다.</p>
@@ -401,7 +402,7 @@
   ],
   "weakTags": ["이분 탐색"]
 }</code></pre>
-<p><code>measurements</code>는 리포트용 재측정값이다. 채점 때는 시간 제한에서 실행을 끊으므로 <code>maxTimeSec</code>와 다를 수 있다. 재측정에서도 시간을 넘으면 <code>bombTimedOut</code>이 true이고 <code>bombSec</code>는 null이다. <code>label</code>, <code>complexity</code>는 <a href="#pending">생성 방법 미정</a>이다.</p>
+<p><code>measurements</code>는 리포트용 재측정값이다. 채점 때는 시간 제한에서 실행을 끊으므로 <code>maxTimeSec</code>와 다를 수 있다. 재측정에서도 시간을 넘으면 <code>bombTimedOut</code>이 true이고 <code>bombSec</code>는 null이다. <code>label</code>, <code>complexity</code>는 제출 코드를 분석한 값이 아니라 문제에 등록된 <b>대표 풀이</b> 설명이다. 화면에는 "대표 풀이"로 표시한다.</p>
 </div></details>
 <details class="ep"><summary><span class="m GET">GET</span><span class="path">/api/v1/matches/{matchId}/events</span><span class="tag p2">최종</span><span class="tag auth">로그인</span><span class="desc">다시 보기용 사건 기록</span></summary><div class="body">
 <p>경기 중 서버가 보낸 이벤트를 <code>seq</code> 순서로 돌려준다. 쿼리: <code>fromSeq</code>(기본 0). 상대 코드는 경기가 끝난 뒤에만 포함.</p>
@@ -426,7 +427,9 @@
 <p><code>problem.yaml</code>에 Lv3 금지 규칙과 리포트 정보를 적는다.</p>
 <pre><code>restrictions: [SORT_BUILTIN]
 report:
-  hint: "이중 for문 O(N²) → 정렬 + 투 포인터 O(N log N)"</code></pre>
+  hint: "이중 for문 O(N²) → 정렬 + 투 포인터 O(N log N)"
+  slow: { label: "이중 for문", complexity: "O(N²)" }
+  intended: { label: "정렬 + 투 포인터", complexity: "O(N log N)" }</code></pre>
 <pre><code>// 202 Response data
 { "problemId": "prb_two_sum_count", "validationId": "val_33", "status": "VALIDATING" }</code></pre>
 <p>에러: <code>PACKAGE_INVALID</code>, <code>FORBIDDEN</code></p>
@@ -465,17 +468,17 @@ const socket = io("http://localhost:3000/battle", { auth: { token: accessToken }
 
 <h2 id="ws-c2s">클라이언트 → 서버</h2>
 <details class="ep" open><summary><span class="m C2S">C→S</span><span class="path">room:join</span><span class="tag p1">1차</span><span class="desc">방 입장</span></summary><div class="body">
-<pre><code>socket.emit("room:join", { roomCode: "K7Q29X", lang: "PYTHON" }, (res) => { ... });
+<pre><code>socket.emit("room:join", { roomCode: "482917", lang: "PYTHON" }, (res) => { ... });
 // ack data
-{ "roomCode": "K7Q29X", "status": "WAITING", "players": [ ... ] }</code></pre>
+{ "roomCode": "482917", "status": "WAITING", "players": [ ... ] }</code></pre>
 <p>입장하면 방 전체에 <code>room:state</code>. 에러: <code>ROOM_NOT_FOUND</code>, <code>ROOM_FULL</code>, <code>LANGUAGE_NOT_SUPPORTED</code></p>
 </div></details>
 <details class="ep"><summary><span class="m C2S">C→S</span><span class="path">room:ready</span><span class="tag p1">1차</span><span class="desc">준비 / 준비 취소</span></summary><div class="body">
-<pre><code>socket.emit("room:ready", { roomCode: "K7Q29X", ready: true }, ack);</code></pre>
+<pre><code>socket.emit("room:ready", { roomCode: "482917", ready: true }, ack);</code></pre>
 <p>두 명이 모두 준비되면 방장이 <code>room:start</code>로 경기를 시작할 수 있다.</p>
 </div></details>
 <details class="ep"><summary><span class="m C2S">C→S</span><span class="path">room:start</span><span class="tag p1">1차</span><span class="desc">경기 시작 (방장)</span></summary><div class="body">
-<pre><code>socket.emit("room:start", { roomCode: "K7Q29X" }, ack);</code></pre>
+<pre><code>socket.emit("room:start", { roomCode: "482917" }, ack);</code></pre>
 <p>서버가 <code>match:countdown</code> → <code>match:start</code>를 보낸다. 에러: <code>NOT_ROOM_HOST</code>, <code>PLAYERS_NOT_READY</code></p>
 </div></details>
 <details class="ep"><summary><span class="m C2S">C→S</span><span class="path">room:leave</span><span class="tag p1">1차</span><span class="desc">방 나가기</span></summary><div class="body">
@@ -504,13 +507,13 @@ const socket = io("http://localhost:3000/battle", { auth: { token: accessToken }
 <p><code>snapshot</code>은 현재 경기 전체 상태(<code>match:start</code> 형식 + 문제별 공격 단계 + 대기 공격 + 남은 시간).</p>
 </div></details>
 <details class="ep"><summary><span class="m C2S">C→S</span><span class="path">spectate:join</span><span class="tag p2">최종</span><span class="desc">관전 입장</span></summary><div class="body">
-<pre><code>socket.emit("spectate:join", { roomCode: "K7Q29X" }, ack);</code></pre>
+<pre><code>socket.emit("spectate:join", { roomCode: "482917" }, ack);</code></pre>
 <p>관전자는 모든 경기 이벤트와 양쪽 코드(<code>spectate:code</code>)를 같은 <b>30초 지연</b> 시점으로 받는다(엿보기 방지). 에러: <code>ROOM_NOT_FOUND</code>, <code>SPECTATE_NOT_ALLOWED</code></p>
 </div></details>
 
 <h2 id="ws-s2c">서버 → 클라이언트</h2>
 <details class="ep" open><summary><span class="m S2C">S→C</span><span class="path">room:state</span><span class="tag p1">1차</span><span class="desc">방 상태 변경 (방 전체)</span></summary><div class="body">
-<pre><code>{ "roomCode": "K7Q29X", "status": "WAITING", "hostId": "usr_8f2c", "allowSpectate": true, "spectatorCount": 0,
+<pre><code>{ "roomCode": "482917", "status": "WAITING", "hostId": "usr_8f2c", "allowSpectate": true, "spectatorCount": 0,
   "players": [ { "userId": "usr_8f2c", "nickname": "asterisk", "lang": "PYTHON", "ready": true, "connected": true },
                { "userId": "usr_33aa", "nickname": "kimcoding", "lang": "CPP", "ready": false, "connected": true } ] }</code></pre>
 </div></details>
@@ -523,7 +526,7 @@ const socket = io("http://localhost:3000/battle", { auth: { token: accessToken }
   "matchId": "mat_1042", "startAt": 1792900000000, "endAt": 1792900900000,
   "rules": { "durationSec": 900, "basePoints": { "LOW": 1, "MID": 2, "HIGH": 3 }, "firstSolveBonus": 1,
              "cleanStreakBonus": 1, "maxSendPoints": 3, "applyDelaySec": 45, "attackTlFactor": 0.7,
-             "spectateDelaySec": 30, "codeSyncIntervalSec": 10 },   // codeSyncIntervalSec는 예시 값, 미정
+             "spectateDelaySec": 30, "codeSyncIntervalSec": 10 },
   "problems": [
     { "no": 1, "problemId": "prb_prefix_sum", "title": "구간 합", "difficulty": "LOW",
       "timeLimitSec": 0.5, "memoryLimitMb": 256, "maxAttackLevel": 3 }
@@ -606,11 +609,12 @@ const socket = io("http://localhost:3000/battle", { auth: { token: accessToken }
   <tr><td>반격</td><td>남은 포인트를 한 번에 최대 3점까지</td></tr>
   <tr><td>적용</td><td>45초 뒤, 상대가 안 푼 문제의 낮은 번호부터 Lv3까지, 넘치면 다음 번호로</td></tr>
   <tr><td>공격 단계</td><td>Lv1 시간 제한 70% → Lv2 + TC 폭탄(대용량 입력 3개) → Lv3 + 문법 제한</td></tr>
-  <tr><td>승리</td><td>푼 문제 수, 같으면 마지막 정답이 빠른 쪽</td></tr>
+  <tr><td>승리</td><td>푼 문제 수, 같으면 마지막 정답이 빠른 쪽. 둘 다 0문제면 무승부</td></tr>
   <tr><td>언어별 시간 제한</td><td>모범 풀이 최대 시간 × 2 ÷ 0.7 → 0.5초 단위 올림 (문제 등록 시 자동 계산)</td></tr>
   <tr><td>재접속 대기</td><td>60초 (넘기면 기권)</td></tr>
   <tr><td>제출 간격</td><td>최소 3초</td></tr>
   <tr><td>관전 지연</td><td>30초 (점수 · 이벤트 · 코드 모두 같은 시점)</td></tr>
+  <tr><td>코드 전송 주기</td><td>10초 (코드가 바뀌었을 때만)</td></tr>
 </table>
 
 <h2 id="pending">미정 사항</h2>
@@ -619,23 +623,24 @@ const socket = io("http://localhost:3000/battle", { auth: { token: accessToken }
   <tr><td>지원 언어 (3개 vs C++ · Python 2개)</td><td><code>Lang</code> enum, <code>timeLimitSec</code> · 검사 결과의 언어 키</td></tr>
   <tr><td>공격 구성 A안 / B안 (가벼운 공격 추가)</td><td>B안이면 <code>attack:light</code> 이벤트와 파티 모드 <code>rulePreset</code> 추가</td></tr>
   <tr><td>반격 상한 3점 · 대기 45초</td><td><code>match:start</code>의 <code>rules</code> 값만 바뀜 (명세 형식은 그대로)</td></tr>
-  <tr><td>같은 이메일의 계정 연결</td><td>현재는 자동 연결하지 않고 <code>DUPLICATE_EMAIL</code>. 연결 기능을 넣으면 API 추가</td></tr>
-  <tr><td>둘 다 0문제일 때 결과</td><td>무승부를 인정하면 <code>winnerId</code> null, <code>MatchResult</code>에 <code>DRAW</code> 추가</td></tr>
-  <tr><td>코드 전송 주기</td><td><code>rules.codeSyncIntervalSec</code> 값</td></tr>
-  <tr><td>풀이 설명과 복잡도 생성 방법</td><td>리포트의 <code>label</code>, <code>complexity</code>와 <code>problem.yaml</code> 형식</td></tr>
-  <tr><td>문제 등록 방식 (zip vs 화면에서 파일별 업로드)</td><td>Figma는 단계별 입력이고 명세는 zip. <code>POST /admin/problems</code> 형식</td></tr>
-  <tr><td>방 코드 형식 (영문 + 숫자 vs 숫자 6자리)</td><td>Figma는 숫자(<code>482917</code>), 명세는 영문 + 숫자</td></tr>
-  <tr><td>사용자 티어 (Silver III 등)</td><td>Figma의 로비 · 대기실 · 관전에 표시. 산정 기준과 응답 필드가 없음</td></tr>
-  <tr><td>대결 신청 · 초대 · 재대결</td><td>Figma의 로비 · 결과 화면에 있음. API와 이벤트 추가 필요</td></tr>
-  <tr><td>문제 신고</td><td>Figma의 대결 화면에 있음. API 추가 필요</td></tr>
-  <tr><td>프로필 항목 (소개, 아바타, 공개 설정, 리더보드)</td><td><code>/users/me</code> 필드와 경기 후 코드 공개 규칙. Figma 프로필 화면은 이름이 "코드 아레나"로 남아 있어 확인 필요</td></tr>
-  <tr><td>출제자 권한</td><td>Figma는 "출제자 전용", 명세는 <code>ADMIN</code>. <code>Role</code> 추가 여부</td></tr>
-  <tr><td>랭킹 매칭 (2차 기능)</td><td><code>matchmaking:*</code> 이벤트 추가 예정</td></tr>
+</table>
+
+<h2 id="excluded">1차 제외 기능</h2>
+<p>Figma와 명세에서 뺀 기능이다. 1차 완성 후 필요하면 API를 새로 정의한다.</p>
+<table>
+  <tr><th style="width:34%">기능</th><th>1차 처리</th></tr>
+  <tr><td>사용자 티어</td><td>승패 전적으로 표시</td></tr>
+  <tr><td>대결 신청 · 초대 · 재대결</td><td>방 코드와 링크로 입장, 경기 후 로비로 이동</td></tr>
+  <tr><td>문제 신고</td><td>제외</td></tr>
+  <tr><td>프로필 소개 · 아바타 · 공개 설정 · 리더보드</td><td>닉네임과 주 언어만 수정</td></tr>
+  <tr><td>랭킹 매칭</td><td><code>matchmaking:*</code> 이벤트는 2차에 정의</td></tr>
+  <tr><td>이메일 계정과 GitHub 계정 연결</td><td>자동 연결하지 않음. 같은 이메일이면 <code>DUPLICATE_EMAIL</code></td></tr>
 </table>
 
 <h2 id="changelog">변경 이력</h2>
 <table>
   <tr><th style="width:20%">버전</th><th style="width:20%">날짜</th><th>내용</th></tr>
+  <tr><td>v0.3</td><td>2026-11-01</td><td>Figma 대조 결정 반영: 방 코드 숫자 6자리, 0:0 무승부, 코드 전송 10초, 대표 풀이 사전 등록, 1차 제외 기능 분리</td></tr>
   <tr><td>v0.2</td><td>2026-11-01</td><td>GitHub 로그인, 방장 경기 시작(<code>room:start</code>), 코드 전송 · 다시 보기 코드, 관전 지연 통일, 진행 중 경기 · 로비 요약 · 내 기록 통계, 문제 목록 검색 · 필터, 채점 결과 메모리 · 구간별 통과, 리포트 재측정값 · 풀이 설명, 미정 사항 정리</td></tr>
   <tr><td>v0.1</td><td>2026-10-27</td><td>초안: REST 8개 영역, Socket.IO 이벤트, 에러 코드, enum, 규칙 수치</td></tr>
 </table>
