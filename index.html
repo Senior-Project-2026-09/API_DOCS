@@ -79,7 +79,7 @@
 <div class="layout">
 <nav id="nav">
   <div class="brand">코딩 배틀 API</div>
-  <div class="ver">v0.3 초안 · 2026-11-01</div>
+  <div class="ver">v0.4 초안 · 2026-11-01</div>
   <input id="q" type="search" placeholder="경로 · 이벤트 검색" aria-label="검색">
   <h4>개요</h4>
   <a href="#overview">한눈에 보기</a>
@@ -111,7 +111,7 @@
 <main>
 <button class="theme" id="theme" type="button">다크/라이트</button>
 <h1>실시간 코딩 배틀 플랫폼 — API 명세</h1>
-<p class="lead">REST API(계정 · 문제 · 방 · 경기 기록 · 문제 등록)와 Socket.IO 실시간 이벤트(대결 진행 · 채점 결과 · 공격)를 정의합니다. <span class="pill">v0.3 초안 — 팀 검토 필요</span></p>
+<p class="lead">REST API(계정 · 문제 · 방 · 경기 기록 · 문제 등록)와 Socket.IO 실시간 이벤트(대결 진행 · 채점 결과 · 공격)를 정의합니다. <span class="pill">v0.4 초안 — 팀 검토 필요</span></p>
 
 <!-- ============================================================ 개요 -->
 <h2 id="overview">한눈에 보기</h2>
@@ -271,15 +271,15 @@
 <h2 id="users">Users — 내 정보 · 기록</h2>
 <details class="ep"><summary><span class="m GET">GET</span><span class="path">/api/v1/users/me</span><span class="tag p1">1차</span><span class="tag auth">로그인</span><span class="desc">내 정보</span></summary><div class="body">
 <pre><code>{ "userId": "usr_8f2c", "email": "user@example.com", "nickname": "asterisk",
-  "preferredLang": "PYTHON", "role": "USER",
+  "preferredLang": "PYTHON", "role": "USER", "needsNickname": false,
   "stats": { "matches": 12, "wins": 7, "losses": 5, "comebacks": 3, "solved": 41 } }</code></pre>
-<p><code>comebacks</code> = 한 번이라도 뒤졌다가 이긴 경기 수.</p>
+<p><code>comebacks</code> = 한 번이라도 뒤졌다가 이긴 경기 수. <code>needsNickname</code>이 true면 닉네임 설정 화면을 먼저 보여 준다.</p>
 </div></details>
 <details class="ep"><summary><span class="m PATCH">PATCH</span><span class="path">/api/v1/users/me</span><span class="tag p1">1차</span><span class="tag auth">로그인</span><span class="desc">닉네임 · 기본 언어 변경</span></summary><div class="body">
 <pre><code>{ "nickname": "asterisk_", "preferredLang": "CPP" }</code></pre>
 </div></details>
-<details class="ep"><summary><span class="m GET">GET</span><span class="path">/api/v1/users/me/matches</span><span class="tag p2">최종</span><span class="tag auth">로그인</span><span class="desc">내 경기 기록 목록</span></summary><div class="body">
-<p>쿼리: <code>page</code>, <code>size</code>. 최신순.</p>
+<details class="ep"><summary><span class="m GET">GET</span><span class="path">/api/v1/users/me/matches</span><span class="tag p1">1차</span><span class="tag auth">로그인</span><span class="desc">내 경기 기록 목록</span></summary><div class="body">
+<p>쿼리: <code>page</code>, <code>size</code>. 최신순. 로비의 최근 경기에도 쓴다.</p>
 <pre><code>// data.content[]
 { "matchId": "mat_1042", "endedAt": "2026-10-27T01:30:00+09:00", "opponent": { "userId": "usr_33aa", "nickname": "kimcoding" },
   "result": "WIN", "solved": 4, "opponentSolved": 3, "reason": "TIME_UP" }</code></pre>
@@ -296,7 +296,7 @@
 
 <h2 id="problems">Problems — 문제</h2>
 <details class="ep"><summary><span class="m GET">GET</span><span class="path">/api/v1/problems</span><span class="tag p1">1차</span><span class="desc">문제 목록 (연습용)</span></summary><div class="body">
-<p>쿼리: <code>q</code>(제목 검색), <code>difficulty</code>(LOW|MID|HIGH, 여러 개 가능), <code>tag</code>(여러 개 가능), <code>bombOnly</code>(true면 폭탄 지원 문제만), <code>progress</code>(ProblemProgress, 로그인 필요), <code>sort</code>(기본 <code>DEFAULT</code>), <code>page</code>, <code>size</code>. 공개(<code>published</code>)된 문제만.</p>
+<p>쿼리: <code>q</code>(제목 검색), <code>difficulty</code>(LOW|MID|HIGH, 여러 개 가능), <code>tag</code>(여러 개 가능), <code>bombOnly</code>(true면 폭탄 지원 문제만), <code>progress</code>(ProblemProgress, 로그인 필요), <code>sort</code>(<code>DEFAULT</code> | <code>ACCEPTANCE</code> | <code>DIFFICULTY</code>, 기본 <code>DEFAULT</code>), <code>page</code>, <code>size</code>. 공개(<code>published</code>)된 문제만.</p>
 <pre><code>// data.content[]
 { "problemId": "prb_two_sum_count", "title": "두 수의 합 개수", "difficulty": "LOW",
   "tags": ["정렬", "투 포인터"], "solvedacTier": "Silver IV", "bombEnabled": true,
@@ -507,15 +507,20 @@ const socket = io("http://localhost:3000/battle", { auth: { token: accessToken }
 <p><code>snapshot</code>은 현재 경기 전체 상태(<code>match:start</code> 형식 + 문제별 공격 단계 + 대기 공격 + 남은 시간).</p>
 </div></details>
 <details class="ep"><summary><span class="m C2S">C→S</span><span class="path">spectate:join</span><span class="tag p2">최종</span><span class="desc">관전 입장</span></summary><div class="body">
-<pre><code>socket.emit("spectate:join", { roomCode: "482917" }, ack);</code></pre>
+<pre><code>socket.emit("spectate:join", { roomCode: "482917" }, ack);
+// ack data
+{ "matchId": "mat_1042", "spectatorCount": 24, "delayedSeq": 18,
+  "players": [ { "userId": "usr_8f2c", "nickname": "asterisk", "lang": "PYTHON", "solved": [1, 3] },
+               { "userId": "usr_33aa", "nickname": "kimcoding", "lang": "CPP", "solved": [1, 2] } ],
+  "snapshot": { ... } }  // 30초 지연 시점의 경기 상태 (match:sync의 snapshot과 같은 형식)</code></pre>
 <p>관전자는 모든 경기 이벤트와 양쪽 코드(<code>spectate:code</code>)를 같은 <b>30초 지연</b> 시점으로 받는다(엿보기 방지). 에러: <code>ROOM_NOT_FOUND</code>, <code>SPECTATE_NOT_ALLOWED</code></p>
 </div></details>
 
 <h2 id="ws-s2c">서버 → 클라이언트</h2>
 <details class="ep" open><summary><span class="m S2C">S→C</span><span class="path">room:state</span><span class="tag p1">1차</span><span class="desc">방 상태 변경 (방 전체)</span></summary><div class="body">
 <pre><code>{ "roomCode": "482917", "status": "WAITING", "hostId": "usr_8f2c", "allowSpectate": true, "spectatorCount": 0,
-  "players": [ { "userId": "usr_8f2c", "nickname": "asterisk", "lang": "PYTHON", "ready": true, "connected": true },
-               { "userId": "usr_33aa", "nickname": "kimcoding", "lang": "CPP", "ready": false, "connected": true } ] }</code></pre>
+  "players": [ { "userId": "usr_8f2c", "nickname": "asterisk", "lang": "PYTHON", "ready": true, "connected": true, "wins": 7, "losses": 5 },
+               { "userId": "usr_33aa", "nickname": "kimcoding", "lang": "CPP", "ready": false, "connected": true, "wins": 21, "losses": 13 } ] }</code></pre>
 </div></details>
 <details class="ep"><summary><span class="m S2C">S→C</span><span class="path">match:countdown</span><span class="tag p1">1차</span><span class="desc">시작 카운트다운</span></summary><div class="body">
 <pre><code>{ "matchId": "mat_1042", "startAt": 1792900000000, "serverTime": 1792899997000 }</code></pre>
@@ -640,6 +645,7 @@ const socket = io("http://localhost:3000/battle", { auth: { token: accessToken }
 <h2 id="changelog">변경 이력</h2>
 <table>
   <tr><th style="width:20%">버전</th><th style="width:20%">날짜</th><th>내용</th></tr>
+  <tr><td>v0.4</td><td>2026-11-01</td><td>대기실 전적, 관전 입장 응답, 내 정보의 닉네임 설정 여부, 문제 목록 정렬 값 추가. 내 경기 기록을 1차로 변경</td></tr>
   <tr><td>v0.3</td><td>2026-11-01</td><td>Figma 대조 결정 반영: 방 코드 숫자 6자리, 0:0 무승부, 코드 전송 10초, 대표 풀이 사전 등록, 1차 제외 기능 분리</td></tr>
   <tr><td>v0.2</td><td>2026-11-01</td><td>GitHub 로그인, 방장 경기 시작(<code>room:start</code>), 코드 전송 · 다시 보기 코드, 관전 지연 통일, 진행 중 경기 · 로비 요약 · 내 기록 통계, 문제 목록 검색 · 필터, 채점 결과 메모리 · 구간별 통과, 리포트 재측정값 · 풀이 설명, 미정 사항 정리</td></tr>
   <tr><td>v0.1</td><td>2026-10-27</td><td>초안: REST 8개 영역, Socket.IO 이벤트, 에러 코드, enum, 규칙 수치</td></tr>
